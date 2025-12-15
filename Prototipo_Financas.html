@@ -1,0 +1,261 @@
+
+<!DOCTYPE html>
+<html lang=\"pt-BR\">
+<head>
+  <meta charset=\"UTF-8\" />
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <title>Finanças • Protótipo</title>
+  <style>
+    :root {
+      --blue: #2463eb;
+      --green: #4caf50;
+      --red: #ff5757;
+      --orange: #ff9a3c;
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --text: #222;
+      --muted: #666;
+      --border: #e0e6ef;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, sans-serif; background: var(--bg); color: var(--text); }
+    header { background: var(--blue); color:#fff; padding: 14px 20px; display:flex; align-items:center; justify-content:space-between; }
+    header h1 { font-size: 18px; margin:0; }
+    header nav button { background: rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); color:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; margin-left:8px; }
+    .layout { display:grid; grid-template-columns: 240px 1fr; gap:16px; padding: 16px; }
+    aside { background: #fff; border:1px solid var(--border); border-radius:12px; padding:12px; }
+    aside .item { padding:10px 8px; border-radius:8px; cursor:pointer; color: var(--muted); }
+    aside .item.active { background: #eef3ff; color: var(--blue); font-weight:600; }
+    main { display:grid; gap:16px; }
+    .grid-3 { display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
+    .card { background: var(--card); border:1px solid var(--border); border-radius:12px; padding:12px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .card h3 { margin:0 0 8px; font-size:14px; color: var(--muted); }
+    .value { font-size:18px; font-weight:700; }
+    .value.green { color: var(--green); }
+    .value.blue { color: var(--blue); }
+    .value.red { color: var(--red); }
+    .charts { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .alerts { display:flex; flex-direction:column; gap:6px; }
+    .alert { padding:10px; border-radius:8px; border:1px solid var(--border); background:#fff; font-size:14px; }
+    .alert.warn { border-color:#ffe1c2; background:#fff7ee; }
+    .alert.good { border-color:#cdeccd; background:#f1fbf1; }
+    .progress { height:10px; border-radius:999px; background:#e9eef6; overflow:hidden; }
+    .progress > span { display:block; height:100%; background: var(--orange); width:0%; transition: width .3s ease; }
+
+    /* Form */
+    form { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    label { font-size:12px; color: var(--muted); margin-bottom:6px; display:block; }
+    input, select { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:#fbfcfe; font-size:14px; }
+    .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
+    .btn { padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:#fff; cursor:pointer; }
+    .btn.primary { background: var(--blue); color:#fff; border-color: transparent; }
+    .btn.gray { background:#e6e9f2; }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: #fff; padding:10px 14px; border-radius:8px; opacity:0; transform: translateY(8px); transition: all .25s ease; }
+    .toast.show { opacity:1; transform: translateY(0); }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { order:2; }
+      .charts { grid-template-columns: 1fr; }
+      form { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Finanças • Protótipo</h1>
+    <nav>
+      <button id=\"toDashboard\">Dashboard</button>
+      <button id=\"toExpense\">Cadastrar Despesa</button>
+    </nav>
+  </header>
+
+  <div class=\"layout\">
+    <aside>
+      <div class=\"item active\" data-screen=\"dashboard\">Dashboard</div>
+      <div class=\"item\" data-screen=\"expense\">Cadastrar Despesa</div>
+      <div class=\"item\">Cartões</div>
+      <div class=\"item\">Relatórios</div>
+      <div class=\"item\">Configurações</div>
+    </aside>
+
+    <main>
+      <!-- Dashboard screen -->
+      <section id=\"screen-dashboard\" class=\"screen card\">
+        <div class=\"grid-3\">
+          <div class=\"card\">
+            <h3>Saldo</h3>
+            <div id=\"saldo\" class=\"value green\">R$ 3.250,00</div>
+          </div>
+          <div class=\"card\">
+            <h3>Receitas</h3>
+            <div id=\"receitas\" class=\"value blue\">R$ 5.000,00</div>
+          </div>
+          <div class=\"card\">
+            <h3>Despesas</h3>
+            <div id=\"despesas\" class=\"value red\">R$ 1.750,00</div>
+          </div>
+        </div>
+
+        <div class=\"card\">
+          <h3>Comprometimento dos vencimentos</h3>
+          <div class=\"progress\"><span id=\"comprometimento\" style=\"width: 35%\"></span></div>
+          <small id=\"comprometimentoLabel\" style=\"color:var(--muted)\">35% dos vencimentos comprometidos</small>
+        </div>
+
+        <div class=\"card alerts\">
+          <div class=\"alert warn\" id=\"alert80\" style=\"display:none\">⚠️ Gastos atingiram 80% dos vencimentos</div>
+          <div class=\"alert\">📅 Fatura do cartão vence em 3 dias</div>
+          <div class=\"alert good\" id=\"alertSaldo\" style=\"display:none\">✅ Parabéns! Fechou o mês com saldo positivo</div>
+        </div>
+
+        <div style=\"display:flex; gap:8px;\">
+          <button class=\"btn primary\" id=\"goAddExpense\">Adicionar gasto</button>
+          <button class=\"btn\" id=\"addIncome\">Adicionar renda</button>
+        </div>
+      </section>
+
+      <!-- Expense screen -->
+      <section id=\"screen-expense\" class=\"screen card\" style=\"display:none\">
+        <h2 style=\"margin-top:0\">Cadastrar Despesa</h2>
+        <form id=\"expenseForm\">
+          <div>
+            <label>Descrição</label>
+            <input type=\"text\" id=\"descricao\" placeholder=\"Ex.: Mercado, Uber, Farmácia\" required />
+          </div>
+          <div>
+            <label>Valor</label>
+            <input type=\"text\" id=\"valor\" placeholder=\"R$ 0,00\" required />
+          </div>
+          <div>
+            <label>Categoria</label>
+            <select id=\"categoria\">
+              <option>Mercado</option>
+              <option>Transporte</option>
+              <option>Lazer</option>
+              <option>Saúde</option>
+              <option>Educação</option>
+              <option>Contas da casa</option>
+              <option>Impostos</option>
+            </select>
+          </div>
+          <div>
+            <label>Forma de pagamento</label>
+            <select id=\"forma\">
+              <option>Cartão</option>
+              <option>Débito</option>
+              <option>Pix</option>
+              <option>Dinheiro</option>
+            </select>
+          </div>
+          <div>
+            <label>Data</label>
+            <input type=\"date\" id=\"data\" />
+          </div>
+          <div>
+            <label>Parcelas</label>
+            <input type=\"number\" id=\"parcelas\" min=\"1\" placeholder=\"1\" />
+          </div>
+
+          <div class=\"actions\">
+            <button type=\"button\" class=\"btn gray\" id=\"cancelExpense\">Cancelar</button>
+            <button type=\"submit\" class=\"btn primary\">Salvar</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id=\"toast\" class=\"toast\">Despesa salva com sucesso</div>
+
+  <script>
+    // Estado simples em memória
+    const state = {
+      receitas: 5000.00,
+      despesas: 1750.00,
+      lista: []
+    };
+
+    // Helpers
+    const brl = v => v.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+    const parseValor = str => {
+      // aceita "R$ x" ou números; remove tudo que não for dígito/comma/dot
+      const clean = (str || '').toString().replace(/[^\d.,-]/g, '').replace(',', '.');
+      const n = parseFloat(clean);
+      return isNaN(n) ? 0 : n;
+    };
+
+    function updateUI(){
+      const saldo = state.receitas - state.despesas;
+      document.getElementById('receitas').textContent = brl(state.receitas);
+      document.getElementById('despesas').textContent = brl(state.despesas);
+      const saldoEl = document.getElementById('saldo');
+      saldoEl.textContent = brl(saldo);
+      saldoEl.className = 'value ' + (saldo >= 0 ? 'green' : 'red');
+
+      const comprometimento = Math.min(100, Math.round((state.despesas / state.receitas) * 100));
+      document.getElementById('comprometimento').style.width = comprometimento + '%';
+      document.getElementById('comprometimentoLabel').textContent = `${comprometimento}% dos vencimentos comprometidos`;
+      document.getElementById('alert80').style.display = comprometimento >= 80 ? 'block' : 'none';
+      document.getElementById('alertSaldo').style.display = saldo > 0 ? 'block' : 'none';
+    }
+
+    function showScreen(name){
+      document.getElementById('screen-dashboard').style.display = name==='dashboard' ? 'block' : 'none';
+      document.getElementById('screen-expense').style.display = name==='expense' ? 'block' : 'none';
+      document.querySelectorAll('aside .item').forEach(el => {
+        el.classList.toggle('active', el.dataset.screen === name);
+      });
+    }
+
+    function toast(msg){
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1800);
+    }
+
+    // Navegação
+    document.getElementById('toDashboard').onclick = () => showScreen('dashboard');
+    document.getElementById('toExpense').onclick = () => showScreen('expense');
+    document.querySelectorAll('aside .item').forEach(el => {
+      if(el.dataset.screen){ el.onclick = () => showScreen(el.dataset.screen); }
+    });
+    document.getElementById('goAddExpense').onclick = () => showScreen('expense');
+
+    // Adicionar renda simples
+    document.getElementById('addIncome').onclick = () => {
+      const val = prompt('Valor da renda (ex.: 500):');
+      const n = parseValor(val);
+      if(n > 0){ state.receitas += n; updateUI(); toast('Renda adicionada'); }
+    };
+
+    // Form de despesas
+    const form = document.getElementById('expenseForm');
+    document.getElementById('cancelExpense').onclick = () => { form.reset(); showScreen('dashboard'); };
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const item = {
+        descricao: document.getElementById('descricao').value.trim(),
+        valor: parseValor(document.getElementById('valor').value),
+        categoria: document.getElementById('categoria').value,
+        forma: document.getElementById('forma').value,
+        data: document.getElementById('data').value,
+        parcelas: parseInt(document.getElementById('parcelas').value||'1',10)
+      };
+      if(!item.descricao || item.valor <= 0){ toast('Preencha descrição e valor válido'); return; }
+      state.lista.push(item);
+      state.despesas += item.valor; // simples: soma valor total
+      form.reset();
+      showScreen('dashboard');
+      updateUI();
+      toast('Despesa salva com sucesso');
+    };
+
+    // Inicial
+    updateUI();
+  </script>
+</body>
+</html>
